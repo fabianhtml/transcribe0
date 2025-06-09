@@ -1,6 +1,6 @@
 # AudioInk 🎧
 
-**Professional local audio transcription with Whisper-powered language detection**
+Professional local audio transcription with Whisper-powered language detection
 
 Transform audio/video files and YouTube URLs into accurate text with real-time processing and intelligent language detection.
 
@@ -26,16 +26,19 @@ brew install ffmpeg  # macOS
 ## 🎯 Key Features
 
 ### **🎧 Whisper-Powered Language Detection**
+
 - **95% accuracy** language identification from audio analysis
 - Supports **99+ languages** automatically
 - Analyzes first 5 seconds for instant detection
 
 ### **⚡ Dual Input Modes**
+
 - **YouTube URLs**: Instant transcription + Whisper fallback
 - **File Upload**: Real-time processing with live preview
 - **Formats**: MP3, WAV, M4A, FLAC, OGG, MP4, AVI, MOV
 
-### **🚀 Smart Processing** 
+### **🚀 Smart Processing**
+
 - Automatic chunking for large files (>2 min)
 - Settings lock during transcription
 - Background processing support
@@ -44,6 +47,7 @@ brew install ffmpeg  # macOS
 ## 🔧 Technical Details
 
 ### **Whisper Models Available**
+
 | Model | Parameters | Quality | Speed | VRAM Required |
 |-------|------------|---------|-------|---------------|
 | **large-v3-turbo** ⭐ | 809M | Excellent | 8x faster | ~6GB |
@@ -54,6 +58,7 @@ brew install ffmpeg  # macOS
 | large | 1550M | Best | 1x baseline | ~10GB |
 
 ### **System Requirements**
+
 - **Python**: 3.8+
 - **VRAM/RAM**: 1-10GB (model dependent)
 - **Storage**: 200MB-6GB for models
@@ -62,6 +67,7 @@ brew install ffmpeg  # macOS
 ## 🏗️ Architecture
 
 **Modular Design** (6 specialized modules):
+
 - `audioink.py` - Main orchestration
 - `youtube_handler.py` - YouTube processing + Whisper detection  
 - `audio_processing.py` - Whisper transcription engine
