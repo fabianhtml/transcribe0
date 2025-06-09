@@ -1,0 +1,34 @@
+[theme]
+# Configuración base oscura
+base = "dark"
+
+# Colores principales
+primaryColor = "#4CAF50"  # Verde para elementos interactivos
+backgroundColor = "#0a0a0a"  # Negro profundo para el fondo principal
+secondaryBackgroundColor = "#1a1a1a"  # Gris muy oscuro para contraste
+textColor = "#e0e0e0"  # Gris claro para texto
+
+# Colores adicionales
+linkColor = "#66BB6A"  # Verde claro para enlaces
+codeBackgroundColor = "#2a2a2a"  # Gris oscuro para bloques de código
+
+# Bordes y elementos UI
+borderColor = "#333333"  # Gris oscuro para bordes
+showWidgetBorder = false  # Bordes solo cuando hay focus
+showSidebarBorder = true
+
+# Radio de bordes
+baseRadius = "medium"  # Bordes ligeramente redondeados
+
+# Fuentes
+font = "sans-serif"  # Usa Source Sans predeterminada
+headingFont = "sans-serif"
+codeFont = "monospace"
+baseFontSize = 16
+
+# Configuración específica del sidebar
+[theme.sidebar]
+backgroundColor = "#0f0f0f"  # Ligeramente más oscuro que el principal
+secondaryBackgroundColor = "#1f1f1f"
+primaryColor = "#4CAF50"
+textColor = "#e0e0e0"
