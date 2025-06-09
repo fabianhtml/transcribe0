@@ -7,7 +7,7 @@ A professional local audio-to-text transcription tool with instant YouTube trans
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/AudioInk.git
+git clone https://github.com/fabianhtml/AudioInk.git
 cd AudioInk
 ```
 
