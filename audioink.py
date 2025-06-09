@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Transcribe0 - Local Audio Transcription Tool
+AudioInk - Local Audio Transcription Tool
 Uses OpenAI Whisper for offline audio-to-text conversion
 """
 
@@ -17,8 +17,8 @@ import re
 
 # Page configuration
 st.set_page_config(
-    page_title="Transcribe0",
-    page_icon="🎤",
+    page_title="AudioInk",
+    page_icon="🎧",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -501,7 +501,7 @@ def render_subtitle_info_card(detected_lang, word_count, estimated_time):
 def render_header():
     """Render application header"""
     st.markdown("""
-    <h1 style='text-align: center; margin-bottom: 0;'>🎤 Transcribe0</h1>
+    <h1 style='text-align: center; margin-bottom: 0;'>AudioInk</h1>
     <p style='text-align: center; color: #666; margin-top: 0;'>Local audio-to-text transcription powered by OpenAI Whisper</p>
     """, unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)

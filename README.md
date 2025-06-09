@@ -1,4 +1,4 @@
-# Transcribe0 - Local Audio Transcription Tool
+# AudioInk - Local Audio Transcription Tool
 
 A professional local audio-to-text transcription tool with instant YouTube transcription and high-quality Whisper processing.
 
@@ -7,8 +7,8 @@ A professional local audio-to-text transcription tool with instant YouTube trans
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/transcribe0.git
-cd transcribe0
+git clone https://github.com/yourusername/AudioInk.git
+cd AudioInk
 ```
 
 2. Install Python dependencies:
@@ -34,7 +34,7 @@ pip install audioop-lts
 
 Run the application:
 ```bash
-streamlit run transcribe0.py
+streamlit run audioink.py
 ```
 
 The app will open in your browser at `http://localhost:8501`
