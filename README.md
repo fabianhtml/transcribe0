@@ -44,19 +44,19 @@ brew install ffmpeg  # macOS
 ## 🔧 Technical Details
 
 ### **Whisper Models Available**
-| Model | Quality | Speed | Size |
-|-------|---------|-------|------|
-| **large-v3-turbo** ⭐ | Excellent | Fast | ~1.5GB |
-| tiny | Basic | Ultra Fast | ~39MB |
-| base | Good | Fast | ~74MB |
-| small | Better | Medium | ~244MB |
-| medium | High | Slow | ~769MB |
-| large | Best | Slowest | ~1.5GB |
+| Model | Parameters | Quality | Speed | VRAM Required |
+|-------|------------|---------|-------|---------------|
+| **large-v3-turbo** ⭐ | 809M | Excellent | 8x faster | ~6GB |
+| tiny | 39M | Basic | 10x faster | ~1GB |
+| base | 74M | Good | 7x faster | ~1GB |
+| small | 244M | Better | 4x faster | ~2GB |
+| medium | 769M | High | 2x faster | ~5GB |
+| large | 1550M | Best | 1x baseline | ~10GB |
 
 ### **System Requirements**
 - **Python**: 3.8+
-- **RAM**: 2-8GB (model dependent)
-- **Storage**: 1-4GB for models
+- **VRAM/RAM**: 1-10GB (model dependent)
+- **Storage**: 200MB-6GB for models
 - **FFmpeg**: Required for audio processing
 
 ## 🏗️ Architecture
