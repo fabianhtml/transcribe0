@@ -32,12 +32,22 @@ pip install audioop-lts
 
 ## Usage
 
-Run the application:
+### Option 1: Run normally
 ```bash
 streamlit run audioink.py
 ```
 
-The app will open in your browser at `http://localhost:8501`
+### Option 2: Run in background (recommended)
+```bash
+./start_audioink.sh
+```
+
+The app will be available at `http://localhost:8501`
+
+### Stop background process
+```bash
+pkill -f "streamlit run audioink.py"
+```
 
 ### How It Works
 
