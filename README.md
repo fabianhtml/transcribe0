@@ -52,6 +52,7 @@ The app will open in your browser at `http://localhost:8501`
 - **small**: Good quality, moderate speed (~244 MB)
 - **medium**: High quality, slower (~769 MB)
 - **large**: Best quality, slowest (~1550 MB)
+- **large-v3-turbo**: Excellent quality, faster than large (~809 MB)
 
 First run will download the selected model automatically.
 

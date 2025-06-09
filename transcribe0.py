@@ -34,7 +34,8 @@ MODELS = {
     'base': 'Balanced speed and quality',
     'small': 'Good quality, moderate speed',
     'medium': 'High quality, slower',
-    'large': 'Best quality, slowest'
+    'large': 'Best quality, slowest',
+    'large-v3-turbo': 'Excellent quality, faster than large'
 }
 
 # Language options
@@ -101,7 +102,7 @@ def process_large_audio(audio_path, model, language, chunk_duration_ms=60000):
             current_text = ' '.join(transcriptions)
             live_text.markdown(f"""
             <div style='padding: 1rem; background-color: #1a1a1a; border-radius: 0.5rem; 
-                        height: 200px; overflow-y: auto; font-family: monospace;'>
+                        height: 300px; overflow-y: auto; font-family: monospace;'>
                 {current_text}
             </div>
             """, unsafe_allow_html=True)
@@ -149,7 +150,7 @@ def transcribe_audio(audio_file, model_name, language):
                     current_text = ''.join(segments_text)
                     live_text.markdown(f"""
                     <div style='padding: 1rem; background-color: #1a1a1a; border-radius: 0.5rem; 
-                                height: 200px; overflow-y: auto; font-family: monospace;'>
+                                height: 300px; overflow-y: auto; font-family: monospace;'>
                         {current_text}
                     </div>
                     """, unsafe_allow_html=True)
@@ -192,7 +193,7 @@ def main():
         model_name = st.selectbox(
             "Model",
             options=list(MODELS.keys()),
-            index=1,  # Default to 'base'
+            index=5,  # Default to 'large-v3-turbo'
             format_func=lambda x: f"{x.capitalize()} - {MODELS[x]}",
             label_visibility="collapsed"
         )
@@ -222,7 +223,7 @@ def main():
         
         # Transcribe button with better styling
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🎯 Start Transcription", type="primary", use_container_width=True):
+        if st.button("Start Transcription", type="primary", use_container_width=True):
             try:
                 # Store in session state
                 start_time = time.time()
@@ -269,20 +270,24 @@ def main():
         transcribed_text = st.text_area(
             "Transcribed Text",
             value=st.session_state['transcription'],
-            height=300,
+            height=500,
             help="You can edit the text before copying or downloading",
             label_visibility="collapsed",
             key="transcription_output"
         )
         
-        # Action buttons in columns
-        action_col1, action_col2 = st.columns(2)
+        # Action buttons
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("### 🛠️ Export Options")
+        
+        action_col1, action_col2, action_col3 = st.columns([1, 1, 1])
         
         with action_col1:
-            # Copy to clipboard using st.code
-            with st.expander("📋 Copy to Clipboard"):
+            # Copy button with better visibility
+            if st.button("📋 Copy to Clipboard", use_container_width=True):
+                # Create a temporary code block for copying
                 st.code(transcribed_text, language=None)
-                st.caption("Click the copy button above")
+                st.success("✅ Text ready to copy! Use the copy button in the code block above.")
         
         with action_col2:
             # Download button
@@ -293,6 +298,12 @@ def main():
                 mime="text/plain",
                 use_container_width=True
             )
+        
+        with action_col3:
+            # Word count info
+            word_count = len(transcribed_text.split())
+            char_count = len(transcribed_text)
+            st.metric("Word Count", f"{word_count:,}", help=f"{char_count:,} characters")
     
     # Footer with better styling
     st.markdown("<br><br>", unsafe_allow_html=True)
