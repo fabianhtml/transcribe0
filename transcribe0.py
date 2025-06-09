@@ -77,6 +77,149 @@ def get_youtube_info(url):
         uploader = info.get('uploader', 'Unknown')
         return title, duration, uploader
 
+def clean_subtitle_text(subtitle_content):
+    """Clean subtitle text from various formats (VTT, SRT, YouTube)"""
+    import re
+    
+    # Remove timestamps like <00:00:00.160>
+    text = re.sub(r'<\d{2}:\d{2}:\d{2}\.\d{3}>', '', subtitle_content)
+    
+    # Remove HTML tags like <c>, </c>
+    text = re.sub(r'<[^>]+>', '', text)
+    
+    # Split into lines and process
+    lines = text.split('\n')
+    clean_lines = []
+    seen_sentences = set()
+    
+    for line in lines:
+        line = line.strip()
+        
+        # Skip empty lines
+        if not line:
+            continue
+            
+        # Skip VTT headers
+        if line.startswith('WEBVTT') or line.startswith('Kind:') or line.startswith('Language:'):
+            continue
+            
+        # Skip NOTE lines
+        if line.startswith('NOTE'):
+            continue
+            
+        # Skip timestamp lines (HH:MM:SS --> HH:MM:SS)
+        if '-->' in line:
+            continue
+            
+        # Skip pure numbers (subtitle sequence numbers)
+        if line.isdigit():
+            continue
+            
+        # Skip timestamp patterns at start of line
+        if re.match(r'^\d{2}:\d{2}:\d{2}', line):
+            continue
+            
+        # Clean up the line
+        # Remove extra spaces
+        line = ' '.join(line.split())
+        
+        # Skip very short lines (likely artifacts)
+        if len(line) < 3:
+            continue
+            
+        # Add to clean lines if not seen before (removes duplicates)
+        line_key = line.lower().strip('.,!?')
+        if line_key not in seen_sentences and len(line_key) > 5:
+            seen_sentences.add(line_key)
+            clean_lines.append(line)
+    
+    # Join all clean lines
+    result = ' '.join(clean_lines)
+    
+    # Final cleanup
+    # Remove multiple spaces
+    result = re.sub(r'\s+', ' ', result)
+    
+    # Remove common artifacts
+    result = re.sub(r'\[.*?\]', '', result)  # Remove [Music], [Applause], etc.
+    result = re.sub(r'\(.*?\)', '', result)  # Remove (inaudible), etc.
+    
+    return result.strip()
+
+def get_youtube_subtitles(url, language='auto'):
+    """Get existing YouTube subtitles if available"""
+    # Map language codes
+    language_map = {
+        'auto': ['en', 'es', 'fr', 'de', 'it', 'pt'],  # Try multiple languages
+        'en': ['en'],
+        'es': ['es', 'en'],  # Try Spanish first, fallback to English
+        'fr': ['fr', 'en'],
+        'de': ['de', 'en'],
+        'it': ['it', 'en'],
+        'pt': ['pt', 'en']
+    }
+    
+    subtitle_langs = language_map.get(language, ['en'])
+    
+    ydl_opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'writesubtitles': True,
+        'writeautomaticsub': True,
+        'subtitleslangs': subtitle_langs,
+        'skip_download': True,
+        'extract_flat': False,
+    }
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        ydl_opts['outtmpl'] = os.path.join(temp_dir, '%(title)s.%(ext)s')
+        
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.extract_info(url, download=True)
+                
+                # Look for subtitle files and prioritize by language
+                subtitle_files = []
+                for file in os.listdir(temp_dir):
+                    if file.endswith('.vtt') or file.endswith('.srt'):
+                        subtitle_files.append(file)
+                
+                if subtitle_files:
+                    # Sort by language priority
+                    best_subtitle = None
+                    detected_language = 'unknown'
+                    
+                    for lang in subtitle_langs:
+                        for file in subtitle_files:
+                            if f'.{lang}.' in file:
+                                best_subtitle = os.path.join(temp_dir, file)
+                                detected_language = lang
+                                break
+                        if best_subtitle:
+                            break
+                    
+                    # If no language-specific file found, use the first one
+                    if not best_subtitle and subtitle_files:
+                        best_subtitle = os.path.join(temp_dir, subtitle_files[0])
+                        # Try to detect language from filename
+                        for lang in subtitle_langs:
+                            if f'.{lang}.' in subtitle_files[0]:
+                                detected_language = lang
+                                break
+                    
+                    if best_subtitle:
+                        with open(best_subtitle, 'r', encoding='utf-8') as f:
+                            subtitle_content = f.read()
+                        
+                        # Clean VTT/SRT format to plain text
+                        cleaned_text = clean_subtitle_text(subtitle_content)
+                        return cleaned_text, True, detected_language
+                
+        except Exception:
+            pass
+    
+    return None, False, 'none'
+
 def download_youtube_audio(url):
     """Download audio from YouTube URL"""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -272,9 +415,36 @@ def main():
             
             if youtube_url and is_youtube_url(youtube_url):
                 st.markdown('<p style="color: #6B7280;">✅ Valid YouTube URL</p>', unsafe_allow_html=True)
-                try:
-                    with st.spinner('🔍 Getting video info...'):
-                        title, duration, uploader = get_youtube_info(youtube_url)
+                
+                # Cache video info in session state by URL
+                cache_key = f"video_info_{hash(youtube_url)}"
+                if cache_key not in st.session_state:
+                    try:
+                        with st.spinner('🔍 Getting video info...'):
+                            title, duration, uploader = get_youtube_info(youtube_url)
+                            subtitle_text, has_subtitles, detected_lang = get_youtube_subtitles(youtube_url, 'auto')
+                        
+                        # Cache all info together
+                        st.session_state[cache_key] = {
+                            'title': title,
+                            'duration': duration,
+                            'uploader': uploader,
+                            'subtitle_text': subtitle_text,
+                            'has_subtitles': has_subtitles,
+                            'detected_lang': detected_lang
+                        }
+                    except Exception as e:
+                        st.warning(f"⚠️ Could not get video info: {str(e)}")
+                        st.session_state[cache_key] = None
+                
+                # Use cached data
+                if st.session_state[cache_key]:
+                    cached_data = st.session_state[cache_key]
+                    title = cached_data['title']
+                    duration = cached_data['duration']
+                    uploader = cached_data['uploader']
+                    has_subtitles = cached_data['has_subtitles']
+                    detected_lang = cached_data['detected_lang']
                     
                     st.markdown(f"""
                     <div style='padding: 1rem; background-color: #1a1a1a; border-radius: 0.5rem; margin: 1rem 0;'>
@@ -283,8 +453,41 @@ def main():
                         <strong>Duration:</strong> {duration // 60}:{duration % 60:02d}
                     </div>
                     """, unsafe_allow_html=True)
-                except Exception as e:
-                    st.warning(f"⚠️ Could not get video info: {str(e)}")
+                    
+                    if has_subtitles:
+                        word_count = len(cached_data['subtitle_text'].split())
+                        estimated_whisper_time = duration * 0.1
+                        
+                        st.markdown(f"""
+                        <div style='padding: 1rem; background-color: #2a2a3a; border-radius: 0.5rem; margin: 1rem 0; border-left: 4px solid #6B7280;'>
+                            <strong>⚡ YouTube Transcription Available</strong><br>
+                            <strong>Language:</strong> {detected_lang.upper()}<br>
+                            <strong>Words:</strong> {word_count:,}<br>
+                            <strong>Time saved:</strong> ~{estimated_whisper_time:.0f} seconds
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Auto-store YouTube subtitles as transcription result
+                        st.session_state['transcription'] = cached_data['subtitle_text']
+                        st.session_state['audio_info'] = {
+                            'duration': duration,
+                            'duration_str': f"{int(duration // 60)}:{int(duration % 60):02d}",
+                            'channels': 2,
+                            'frame_rate': 44100,
+                            'sample_width': 2
+                        }
+                        st.session_state['processing_time'] = 0.1  # Instant
+                        st.session_state['source_name'] = title
+                        st.session_state['transcription_source'] = f'YouTube Transcription ({detected_lang.upper()})'
+                        st.session_state['youtube_subtitles_shown'] = True
+                    else:
+                        st.markdown("""
+                        <div style='padding: 1rem; background-color: #4a4a1a; border-radius: 0.5rem; margin: 1rem 0; border-left: 4px solid #FFC107;'>
+                            <strong>⚠️ No YouTube subtitles found</strong><br>
+                            Will use Whisper transcription instead
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
             elif youtube_url:
                 st.error("❌ Invalid YouTube URL. Please enter a valid YouTube link.")
     
@@ -296,18 +499,25 @@ def main():
             # Show locked settings
             locked_model = st.session_state.get('locked_model', 'large-v3-turbo')
             locked_language = st.session_state.get('locked_language', 'auto')
+            locked_use_youtube = st.session_state.get('locked_use_youtube', False)
             
-            st.markdown("**Model Quality**")
-            st.markdown(f"🔒 {locked_model.capitalize()} - {MODELS[locked_model]}")
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("**Language**")
-            st.markdown(f"🔒 {LANGUAGES[locked_language]}")
+            if locked_use_youtube:
+                st.markdown("**Source**")
+                st.markdown("🔒 YouTube Subtitles")
+                st.markdown("<br>", unsafe_allow_html=True)
+            else:
+                st.markdown("**Model Quality**")
+                st.markdown(f"🔒 {locked_model.capitalize()} - {MODELS[locked_model]}")
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("**Language**")
+                st.markdown(f"🔒 {LANGUAGES[locked_language]}")
+            
             st.warning("⚠️ Settings locked during transcription")
             
             model_name = locked_model
             language = locked_language
         else:
-            # Normal settings
+            # Always show Whisper settings (YouTube subtitles are auto-shown when available)
             st.markdown("**Model Quality**")
             model_name = st.selectbox(
                 "Model",
@@ -342,22 +552,44 @@ def main():
         """, unsafe_allow_html=True)
     elif youtube_url and is_youtube_url(youtube_url):
         audio_source = youtube_url
-        try:
-            title, _, _ = get_youtube_info(youtube_url)
-            source_name = title
-        except:
+        # Get the video title for source_name (use cached data)
+        cache_key = f"video_info_{hash(youtube_url)}"
+        if cache_key in st.session_state and st.session_state[cache_key]:
+            source_name = st.session_state[cache_key]['title']
+        else:
             source_name = "YouTube Video"
     
     # Transcription button and process
     if audio_source is not None:
         st.markdown("<br>", unsafe_allow_html=True)
         
-        if not transcribing:
+        # Check if YouTube subtitles are already shown
+        youtube_subtitles_already_shown = st.session_state.get('youtube_subtitles_shown', False)
+        
+        if not transcribing and not youtube_subtitles_already_shown:
             if st.button("🎯 Start Transcription", type="primary", use_container_width=True):
                 # Lock settings and start transcription
                 st.session_state['transcribing'] = True
                 st.session_state['locked_model'] = model_name
                 st.session_state['locked_language'] = language
+                st.session_state['locked_use_youtube'] = False  # Always use Whisper when manually triggered
+                st.rerun()
+        elif youtube_subtitles_already_shown:
+            st.markdown("""
+            <div style='padding: 1rem; background-color: #2a2a3a; border-radius: 0.5rem; margin: 1rem 0; border-left: 4px solid #6B7280;'>
+                <strong>YouTube transcription is already <a href="#transcription-results" style="color: #9CA3AF; text-decoration: underline;">displayed below</a>!</strong><br>
+                Use the "Regenerate with Whisper" button if you want generate transcription again.
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Show regenerate button right after the message
+            if st.button("Regenerate with Whisper", type="secondary", use_container_width=True):
+                # Clear YouTube flag and trigger Whisper transcription
+                st.session_state['youtube_subtitles_shown'] = False
+                st.session_state['transcribing'] = True
+                st.session_state['locked_model'] = 'large-v3-turbo'
+                st.session_state['locked_language'] = 'auto'
+                st.session_state['locked_use_youtube'] = False
                 st.rerun()
         else:
             # Show progress and perform transcription
@@ -366,8 +598,9 @@ def main():
             try:
                 start_time = time.time()
                 
-                # Handle YouTube URL vs file upload
+                # Handle YouTube URL vs file upload (always use Whisper when manually triggered)
                 if isinstance(audio_source, str):  # YouTube URL
+                    # Use Whisper transcription for YouTube
                     with st.spinner('📥 Downloading audio from YouTube...'):
                         audio_content, video_title, duration = download_youtube_audio(audio_source)
                         
@@ -407,6 +640,9 @@ def main():
                 st.session_state['source_name'] = source_name
                 st.session_state['transcribing'] = False
                 
+                # Set transcription source (always Whisper when manually triggered)
+                st.session_state['transcription_source'] = f'OpenAI Whisper ({model_name})'
+                
                 st.success(f"✅ Transcription completed in {processing_time:.1f} seconds!")
                 st.rerun()
                 
@@ -419,7 +655,23 @@ def main():
     # Display results
     if 'transcription' in st.session_state:
         st.markdown("<hr style='margin: 2rem 0; opacity: 0.2;'>", unsafe_allow_html=True)
-        st.markdown("### 📝 Transcription Results")
+        st.markdown('<h3 id="transcription-results">📝 Transcription Results</h3>', unsafe_allow_html=True)
+        
+        # Show transcription source if available
+        if 'transcription_source' in st.session_state:
+            source_info = st.session_state['transcription_source']
+            if 'YouTube Transcription' in source_info:
+                st.markdown(f"""
+                <div style='padding: 0.5rem 1rem; background-color: #2a2a3a; border-radius: 0.5rem; margin: 0.5rem 0; border-left: 4px solid #6B7280;'>
+                    <strong>Source:</strong> {source_info} • <strong>Instant Result</strong>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style='padding: 0.5rem 1rem; background-color: #2a2a3a; border-radius: 0.5rem; margin: 0.5rem 0; border-left: 4px solid #6B7280;'>
+                    <strong>Source:</strong> {source_info}
+                </div>
+                """, unsafe_allow_html=True)
         
         info = st.session_state['audio_info']
         col1, col2, col3 = st.columns(3)
@@ -428,7 +680,12 @@ def main():
         with col2:
             st.metric("Processing Time", f"{st.session_state['processing_time']:.1f}s")
         with col3:
-            st.metric("Speed", f"{info['duration'] / st.session_state['processing_time']:.1f}x")
+            processing_time = st.session_state['processing_time']
+            if processing_time > 0:
+                speed = info['duration'] / processing_time
+                st.metric("Speed", f"{speed:.1f}x" if speed < 1000 else "⚡ Instant")
+            else:
+                st.metric("Speed", "⚡ Instant")
         
         st.markdown("**Transcribed Text**")
         transcribed_text = st.text_area(
@@ -467,6 +724,7 @@ def main():
             word_count = len(transcribed_text.split())
             char_count = len(transcribed_text)
             st.metric("Word Count", f"{word_count:,}", help=f"{char_count:,} characters")
+        
     
     # Footer
     st.markdown("<br><br>", unsafe_allow_html=True)

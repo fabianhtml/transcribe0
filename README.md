@@ -1,6 +1,6 @@
 # Transcribe0 - Local Audio Transcription Tool
 
-A dark-themed local audio-to-text transcription tool using OpenAI Whisper and Streamlit. Features real-time transcription display, YouTube integration, and intelligent chunking for large files.
+A professional local audio-to-text transcription tool with instant YouTube transcription and high-quality Whisper processing.
 
 ## Installation
 
@@ -39,51 +39,32 @@ streamlit run transcribe0.py
 
 The app will open in your browser at `http://localhost:8501`
 
-### Input Methods
+### How It Works
 
-1. **File Upload**: Drag and drop or select audio/video files
-2. **YouTube URL**: Paste any YouTube video URL to transcribe its audio
+1. **YouTube URLs**: Paste any YouTube URL → Get instant transcription (if available) or high-quality Whisper processing
+2. **File Upload**: Drop audio/video files → Real-time Whisper transcription with live progress
+3. **Smart Processing**: Automatic chunking for large files, optimal model selection, settings lock during processing
 
-The app automatically downloads the audio from YouTube videos and processes them locally.
+## Key Features
 
-## Features
-
-### Core Functionality
-
-- **100% Local Processing**: All transcription happens on your machine - no data sent to external servers
-- **Real-time Live Display**: Watch transcription appear as it's generated chunk by chunk
-- **Smart Chunking**: Automatic processing for large files (>2 minutes) with live progress updates
-- **Multiple Input Sources**: Upload files or paste YouTube URLs directly
-
-### Interface & Usability
-
-- **Professional Dark Theme**: Eye-friendly interface with subtle color scheme
-- **Locked Settings During Processing**: Prevents accidental changes during transcription
-- **Progress Indicators**: Clear feedback on download and transcription progress
-- **Intelligent File Naming**: Downloaded transcripts use original video/file names
-
-### Technical Capabilities
-
-- **6 Whisper Models**: From ultra-fast 'tiny' to high-quality 'large-v3-turbo' (default)
-- **Multi-format Support**: MP3, WAV, M4A, FLAC, OGG, MP4, AVI, MOV
-- **6 Language Options**: Auto-detect or manual selection (EN, ES, FR, DE, IT, PT)
-- **YouTube Integration**: Direct audio extraction from YouTube videos (temporary download, auto-cleanup)
-
-### Export & Sharing
-
-- **Multiple Export Options**: Copy to clipboard or download as .txt file
-- **Word Count Metrics**: Real-time statistics on transcribed content
-- **Clean Filename Generation**: Automatic sanitization of special characters
+- **⚡ Instant YouTube Transcription**: Get immediate results from YouTube's existing transcripts
+- **🎯 High-Quality Whisper**: large-v3-turbo model for maximum accuracy when needed  
+- **📱 Smart Interface**: Settings lock during processing, one-click navigation, elegant dark theme
+- **🔄 Real-time Display**: Watch transcription appear live with chunked processing
+- **💾 Multiple Export**: Copy to clipboard, download as .txt with intelligent naming
+- **🌍 Multi-language**: Auto-detect or choose from 6 languages
+- **📁 Multi-format**: MP3, WAV, M4A, FLAC, OGG, MP4, AVI, MOV support
 
 ## Models
-OpenAI Whisper models:
 
-- **tiny**: Ultra fast, lower quality
-- **base**: Balanced speed and quality
-- **small**: Good quality, moderate speed
-- **medium**: High quality, slower
-- **large**: Best quality, slowest
-- **large-v3-turbo**: Excellent quality, faster than large
+OpenAI Whisper models (default: **large-v3-turbo**):
+
+- **large-v3-turbo**: Excellent quality, faster than large ⭐ *Default*
+- **tiny**: Ultra fast, lower quality (~39 MB)
+- **base**: Balanced speed and quality (~74 MB)
+- **small**: Good quality, moderate speed (~244 MB)
+- **medium**: High quality, slower (~769 MB)
+- **large**: Best quality, slowest (~1550 MB)
 
 First run will download the selected model automatically.
 
