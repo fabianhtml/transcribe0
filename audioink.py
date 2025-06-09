@@ -79,8 +79,7 @@ class UIConstants:
     <div style='padding: 1rem; background-color: #2a2a3a; border-radius: 0.5rem; margin: 1rem 0; border-left: 4px solid #6B7280;'>
         <strong>⚡ YouTube Transcription Available</strong><br>
         <strong>Language:</strong> {}<br>
-        <strong>Words:</strong> {:,}<br>
-        <strong>Time saved:</strong> ~{:.0f} seconds
+        <strong>Words:</strong> {:,}
     </div>
     """
     
@@ -492,17 +491,17 @@ def render_video_info_card(title, uploader, duration):
     return UIConstants.VIDEO_INFO_STYLE.format(title, uploader, duration // 60, duration % 60)
 
 @st.cache_data
-def render_subtitle_info_card(detected_lang, word_count, estimated_time):
+def render_subtitle_info_card(detected_lang, word_count):
     """Render subtitle availability card with caching"""
     return UIConstants.SUBTITLE_AVAILABLE_STYLE.format(
-        detected_lang.upper(), word_count, estimated_time
+        detected_lang.upper(), word_count
     )
 
 def render_header():
     """Render application header"""
     st.markdown("""
     <h1 style='text-align: center; margin-bottom: 0;'>AudioInk</h1>
-    <p style='text-align: center; color: #666; margin-top: 0;'>Local audio-to-text transcription powered by OpenAI Whisper</p>
+    <p style='text-align: center; color: #666; margin-top: 0;'>Local audio-to-text transcription with Whisper from OpenAI for free</p>
     """, unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -577,10 +576,9 @@ def render_input_section(transcribing):
                 
                 if has_subtitles:
                     word_count = len(cached_data['subtitle_text'].split())
-                    estimated_whisper_time = duration * 0.1
                     
                     st.markdown(
-                        render_subtitle_info_card(detected_lang, word_count, estimated_whisper_time),
+                        render_subtitle_info_card(detected_lang, word_count),
                         unsafe_allow_html=True
                     )
                     
