@@ -10,6 +10,8 @@ Transform audio/video files and YouTube URLs into accurate text with real-time p
 # 1. Clone and install
 git clone https://github.com/fabianhtml/AudioInk.git
 cd AudioInk
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # 2. Install FFmpeg
@@ -42,7 +44,7 @@ brew install ffmpeg  # macOS
 - Automatic chunking for large files (>2 min)
 - Settings lock during transcription
 - Background processing support
-- Professional dark theme UI
+- Dark theme UI
 
 ## 🔧 Technical Details
 
@@ -59,7 +61,7 @@ brew install ffmpeg  # macOS
 
 ### **System Requirements**
 
-- **Python**: 3.8+
+- **Python**: 3.8-3.13+
 - **VRAM/RAM**: 1-10GB (model dependent)
 - **Storage**: 200MB-6GB for models
 - **FFmpeg**: Required for audio processing
@@ -81,7 +83,8 @@ brew install ffmpeg  # macOS
 # Start in background (recommended)
 ./start_audioink.sh
 
-# Start normally  
+# Start normally (activate venv first)
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 streamlit run audioink.py
 
 # Stop background process

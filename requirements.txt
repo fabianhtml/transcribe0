@@ -1,6 +1,7 @@
 streamlit>=1.28.0
-openai-whisper>=20231117
+openai-whisper @ git+https://github.com/openai/whisper.git
 pydub>=0.25.1
 numpy>=1.24.0
 ffmpeg-python>=0.2.0
 yt-dlp>=2024.1.0
+audioop-lts>=0.2.0  # Required for Python 3.13+
