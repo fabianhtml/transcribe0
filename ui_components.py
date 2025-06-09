@@ -43,26 +43,63 @@ def render_input_section(transcribing):
     if 'active_input_tab' not in st.session_state:
         st.session_state.active_input_tab = 'file'
     
-    # Custom tab selector with proper state management
-    col1, col2 = st.columns(2)
+    # Create tab-like interface with proper isolation
+    selected_tab = st.session_state.active_input_tab
     
-    with col1:
-        if st.button("📁 Upload File", 
-                    type="primary" if st.session_state.active_input_tab == 'file' else "secondary",
-                    use_container_width=True,
-                    disabled=transcribing):
-            st.session_state.active_input_tab = 'file'
-            st.rerun()
+    # Create simple styled tabs using segmented control approach
+    with st.container():
+        # Apply tab styles only within this container
+        st.markdown("""
+        <style>
+            /* Tab container specific styles */
+            .tabs-container + div .stButton > button {
+                border-radius: 0;
+                height: 2.5rem;
+                font-size: 0.875rem;
+                font-weight: 400;
+                white-space: nowrap;
+                background-color: transparent;
+                border: none;
+                border-bottom: 2px solid transparent;
+            }
+            .tabs-container + div .stButton > button[kind="primary"] {
+                border-bottom: 2px solid #6B7280;
+                color: #e0e0e0;
+            }
+            .tabs-container + div .stButton > button[kind="secondary"] {
+                color: #808495;
+            }
+            .tabs-container + div .stButton > button:hover {
+                background-color: transparent;
+                border-bottom: 2px solid #9CA3AF;
+                color: #e0e0e0;
+            }
+        </style>
+        <div class="tabs-container"></div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("📁 Upload File", 
+                        key="tab_file",
+                        type="primary" if selected_tab == 'file' else "secondary",
+                        use_container_width=True,
+                        disabled=transcribing):
+                st.session_state.active_input_tab = 'file'
+                st.rerun()
+        
+        with col2:
+            if st.button("🔗 YouTube URL",
+                        key="tab_youtube", 
+                        type="primary" if selected_tab == 'youtube' else "secondary",
+                        use_container_width=True,
+                        disabled=transcribing):
+                st.session_state.active_input_tab = 'youtube'
+                st.rerun()
     
-    with col2:
-        if st.button("🔗 YouTube URL", 
-                    type="primary" if st.session_state.active_input_tab == 'youtube' else "secondary",
-                    use_container_width=True,
-                    disabled=transcribing):
-            st.session_state.active_input_tab = 'youtube'
-            st.rerun()
-    
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Add separator line
+    st.markdown("<hr style='margin: 0 0 1rem 0; opacity: 0.2;'>", unsafe_allow_html=True)
     
     uploaded_file = None
     youtube_url = None
@@ -159,33 +196,56 @@ def render_input_section(transcribing):
                         
                         # Show regenerate button for YouTube transcriptions
                         st.markdown("<br>", unsafe_allow_html=True)
-                        if st.button("🔄 Regenerate with Whisper", type="secondary", use_container_width=True):
-                            # Set flag to indicate manual Whisper request
-                            st.session_state['manual_whisper_requested'] = True
-                            st.session_state['youtube_subtitles_shown'] = False
-                            st.session_state['transcribing'] = True
-                            st.session_state['locked_model'] = 'large-v3-turbo'
-                            st.session_state['locked_language'] = 'auto'
-                            st.session_state['locked_use_youtube'] = False
+                        
+                        # Create a container for the regenerate button with proper styling
+                        with st.container():
+                            st.markdown("""
+                            <style>
+                                .regenerate-btn .stButton > button {
+                                    background-color: #1a1a1a !important;
+                                    border: 1px solid #333333 !important;
+                                    border-radius: 0.5rem !important;
+                                    height: auto !important;
+                                    padding: 0.5rem 1rem !important;
+                                }
+                                .regenerate-btn .stButton > button:hover {
+                                    background-color: #2a2a2a !important;
+                                    border-color: #6B7280 !important;
+                                }
+                            </style>
+                            <div class="regenerate-btn"></div>
+                            """, unsafe_allow_html=True)
                             
-                            # Preserve YouTube transcription data before clearing
-                            if 'transcription' in st.session_state:
-                                st.session_state['youtube_transcription'] = st.session_state['transcription']
-                                st.session_state['youtube_source'] = st.session_state.get('transcription_source', 'YouTube Transcription')
-                                st.session_state['youtube_audio_info'] = st.session_state.get('audio_info', {})
-                                st.session_state['youtube_processing_time'] = st.session_state.get('processing_time', 0.1)
-                            
-                            # Clear current transcription to show fresh interface
-                            if 'transcription' in st.session_state:
-                                del st.session_state['transcription']
-                            if 'transcription_source' in st.session_state:
-                                del st.session_state['transcription_source']
-                            if 'audio_info' in st.session_state:
-                                del st.session_state['audio_info']
-                            if 'processing_time' in st.session_state:
-                                del st.session_state['processing_time']
+                            if st.button("🔄 Regenerate with Whisper", 
+                                        type="secondary", 
+                                        use_container_width=True,
+                                        key="regenerate_whisper_btn"):
+                                # Set flag to indicate manual Whisper request
+                                st.session_state['manual_whisper_requested'] = True
+                                st.session_state['youtube_subtitles_shown'] = False
+                                st.session_state['transcribing'] = True
+                                st.session_state['locked_model'] = 'large-v3-turbo'
+                                st.session_state['locked_language'] = 'auto'
+                                st.session_state['locked_use_youtube'] = False
                                 
-                            st.rerun()
+                                # Preserve YouTube transcription data before clearing
+                                if 'transcription' in st.session_state:
+                                    st.session_state['youtube_transcription'] = st.session_state['transcription']
+                                    st.session_state['youtube_source'] = st.session_state.get('transcription_source', 'YouTube Transcription')
+                                    st.session_state['youtube_audio_info'] = st.session_state.get('audio_info', {})
+                                    st.session_state['youtube_processing_time'] = st.session_state.get('processing_time', 0.1)
+                                
+                                # Clear current transcription to show fresh interface
+                                if 'transcription' in st.session_state:
+                                    del st.session_state['transcription']
+                                if 'transcription_source' in st.session_state:
+                                    del st.session_state['transcription_source']
+                                if 'audio_info' in st.session_state:
+                                    del st.session_state['audio_info']
+                                if 'processing_time' in st.session_state:
+                                    del st.session_state['processing_time']
+                                    
+                                st.rerun()
                 else:
                     st.markdown(UIConstants.NO_SUBTITLES_STYLE, unsafe_allow_html=True)
                     
@@ -269,6 +329,7 @@ def determine_audio_source(uploaded_file, youtube_url):
 
 def render_results_section(uploaded_file=None, youtube_url=None):
     """Display transcription results and export options"""
+    # Parameters kept for API compatibility but tab state determines visibility
     if 'transcription' not in st.session_state:
         return
     
@@ -368,9 +429,17 @@ def render_single_transcription(transcription, source, audio_info, processing_ti
     action_col1, action_col2, action_col3 = st.columns([1, 1, 1])
     
     with action_col1:
-        if st.button("📋 Copy to Clipboard", use_container_width=True, key=f"copy_{tab_key}"):
-            st.code(transcribed_text, language=None)
-            st.success("✅ Text ready to copy! Use the copy button in the code block above.")
+        # Create an expander for copy functionality
+        with st.expander("📋 Copy to Clipboard", expanded=False):
+            # Show full text in a text area for easy selection
+            st.text_area(
+                "Select all and copy:",
+                value=transcribed_text,
+                height=400,
+                key=f"copy_area_{tab_key}",
+                label_visibility="collapsed"
+            )
+            st.caption("💡 Click inside the text box, press Ctrl+A (Cmd+A on Mac) to select all, then Ctrl+C (Cmd+C) to copy")
     
     with action_col2:
         source_name = st.session_state.get('source_name', 'transcription')
