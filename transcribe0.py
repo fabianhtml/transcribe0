@@ -175,19 +175,63 @@ def clean_subtitle_text(subtitle_content):
     return result.strip()
 
 def get_youtube_subtitles(url, language='auto'):
-    """Get existing YouTube subtitles if available"""
-    # Map language codes
-    language_map = {
-        'auto': ['en', 'es', 'fr', 'de', 'it', 'pt'],  # Try multiple languages
-        'en': ['en'],
-        'es': ['es', 'en'],  # Try Spanish first, fallback to English
-        'fr': ['fr', 'en'],
-        'de': ['de', 'en'],
-        'it': ['it', 'en'],
-        'pt': ['pt', 'en']
-    }
+    """Get existing YouTube subtitles if available with intelligent language detection"""
     
-    subtitle_langs = language_map.get(language, ['en'])
+    # First, get video info to detect the original language
+    try:
+        info_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': False,
+        }
+        
+        with yt_dlp.YoutubeDL(info_opts) as ydl:
+            video_info = ydl.extract_info(url, download=False)
+            video_language = video_info.get('language')
+            automatic_captions = video_info.get('automatic_captions', {})
+            subtitles = video_info.get('subtitles', {})
+            
+    except Exception:
+        video_language = None
+        automatic_captions = {}
+        subtitles = {}
+    
+    # Determine subtitle languages to try based on detection
+    if language == 'auto':
+        # Build priority list based on available subtitles
+        available_langs = set()
+        
+        # Check manual subtitles first (higher quality)
+        if subtitles:
+            available_langs.update(subtitles.keys())
+        
+        # Check automatic captions
+        if automatic_captions:
+            available_langs.update(automatic_captions.keys())
+        
+        # Create smart priority list
+        if video_language and video_language in available_langs:
+            # Prioritize detected video language
+            subtitle_langs = [video_language]
+            # Add other common languages as fallback
+            for lang in ['es', 'en', 'fr', 'de', 'it', 'pt']:
+                if lang != video_language and lang in available_langs:
+                    subtitle_langs.append(lang)
+        else:
+            # Try Spanish first (since user mentioned Spanish video), then others
+            priority_order = ['es', 'en', 'fr', 'de', 'it', 'pt']
+            subtitle_langs = [lang for lang in priority_order if lang in available_langs]
+            
+        # If no matches, try all available
+        if not subtitle_langs:
+            subtitle_langs = list(available_langs)[:6]  # Limit to 6 languages
+            
+        # Always have English as final fallback
+        if not subtitle_langs:
+            subtitle_langs = ['es', 'en']
+    else:
+        # User specified language
+        subtitle_langs = [language, 'en'] if language != 'en' else ['en']
     
     ydl_opts = {
         'quiet': True,
@@ -213,27 +257,64 @@ def get_youtube_subtitles(url, language='auto'):
                         subtitle_files.append(file)
                 
                 if subtitle_files:
-                    # Sort by language priority
+                    # More intelligent subtitle file selection
                     best_subtitle = None
                     detected_language = 'unknown'
                     
-                    for lang in subtitle_langs:
-                        for file in subtitle_files:
-                            if f'.{lang}.' in file:
-                                best_subtitle = os.path.join(temp_dir, file)
-                                detected_language = lang
+                    # First, try to find manual subtitles (higher quality)
+                    manual_subtitle_files = [f for f in subtitle_files if not any(auto_indicator in f for auto_indicator in ['.auto.', 'auto-generated', 'a.'])]
+                    auto_subtitle_files = [f for f in subtitle_files if f not in manual_subtitle_files]
+                    
+                    # Try manual subtitles first, then auto-generated
+                    for file_group in [manual_subtitle_files, auto_subtitle_files]:
+                        if not file_group:
+                            continue
+                            
+                        # Try each language in priority order
+                        for lang in subtitle_langs:
+                            for file in file_group:
+                                # Check for language in filename with various patterns
+                                if (f'.{lang}.' in file or 
+                                    f'-{lang}.' in file or 
+                                    f'_{lang}.' in file or
+                                    file.startswith(f'{lang}.') or
+                                    f'.{lang}-' in file):
+                                    best_subtitle = os.path.join(temp_dir, file)
+                                    detected_language = lang
+                                    break
+                            if best_subtitle:
                                 break
                         if best_subtitle:
                             break
                     
-                    # If no language-specific file found, use the first one
-                    if not best_subtitle and subtitle_files:
-                        best_subtitle = os.path.join(temp_dir, subtitle_files[0])
-                        # Try to detect language from filename
-                        for lang in subtitle_langs:
-                            if f'.{lang}.' in subtitle_files[0]:
-                                detected_language = lang
-                                break
+                    # If no language-specific file found, use the first manual subtitle, then first auto
+                    if not best_subtitle:
+                        preferred_files = manual_subtitle_files if manual_subtitle_files else auto_subtitle_files
+                        if preferred_files:
+                            best_subtitle = os.path.join(temp_dir, preferred_files[0])
+                            # Try to detect language from filename with more patterns
+                            filename = preferred_files[0]
+                            for lang in subtitle_langs:
+                                if (f'.{lang}.' in filename or 
+                                    f'-{lang}.' in filename or 
+                                    f'_{lang}.' in filename or
+                                    filename.startswith(f'{lang}.') or
+                                    f'.{lang}-' in filename):
+                                    detected_language = lang
+                                    break
+                            
+                            # If still unknown, analyze filename more
+                            if detected_language == 'unknown':
+                                # Look for common language patterns
+                                if any(pattern in filename.lower() for pattern in ['spanish', 'español', 'es-']):
+                                    detected_language = 'es'
+                                elif any(pattern in filename.lower() for pattern in ['english', 'en-']):
+                                    detected_language = 'en'
+                                elif any(pattern in filename.lower() for pattern in ['french', 'français', 'fr-']):
+                                    detected_language = 'fr'
+                                else:
+                                    # Use first language from priority list as best guess
+                                    detected_language = subtitle_langs[0] if subtitle_langs else 'en'
                     
                     if best_subtitle:
                         with open(best_subtitle, 'r', encoding='utf-8') as f:
